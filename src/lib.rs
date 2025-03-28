@@ -1,4 +1,5 @@
 mod dummy;
+mod emoticon;
 mod macros;
 mod util;
 
@@ -39,6 +40,10 @@ pub fn parse_confluence<S: AsRef<str>>(source: S, options: &ParseOptions) -> Str
     handlers.insert(
         String::from("ac:parameter"),
         Box::new(dummy::RecursiveDummyHandlerFactory {}),
+    );
+    handlers.insert(
+        String::from("ac:emoticon"),
+        Box::new(emoticon::EmoticonHandlerFactory {}),
     );
     parse_html_custom(source.as_ref(), &handlers)
 }
