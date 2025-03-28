@@ -1,6 +1,7 @@
 mod expand;
 mod info;
 mod jira;
+mod status;
 
 use crate::util::get_tag_name;
 use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
@@ -24,6 +25,7 @@ impl TagHandler for StructuredMacroHandler {
                 self.jira_server_map.clone(),
             ))),
             Some("expand") => Some(Box::new(expand::ExpandMacroHandler::new())),
+            Some("status") => Some(Box::new(status::StatusMacroHandler::new())),
             _ => None,
         };
 
