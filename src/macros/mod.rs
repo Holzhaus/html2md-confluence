@@ -1,3 +1,5 @@
+mod expand;
+
 use crate::util::get_tag_name;
 use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
 
@@ -11,6 +13,7 @@ impl TagHandler for StructuredMacroHandler {
         debug_assert_eq!(get_tag_name(tag).unwrap(), "ac:structured-macro");
 
         self.macro_specific_handler = match get_tag_attr(tag, "ac:name").as_deref() {
+            Some("expand") => Some(Box::new(expand::ExpandMacroHandler::new())),
             _ => None,
         };
 
