@@ -1,5 +1,6 @@
 mod expand;
 mod info;
+mod jira;
 
 use crate::util::get_tag_name;
 use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
@@ -7,6 +8,7 @@ use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
 #[derive(Default)]
 pub struct StructuredMacroHandler {
     macro_specific_handler: Option<Box<dyn TagHandler>>,
+    jira_server_map: jira::JiraServerMap,
 }
 
 impl TagHandler for StructuredMacroHandler {
@@ -18,6 +20,9 @@ impl TagHandler for StructuredMacroHandler {
             Some("tip") => Some(Box::new(info::InfoMacroHandler::new())),
             Some("note") => Some(Box::new(info::InfoMacroHandler::new())),
             Some("warning") => Some(Box::new(info::InfoMacroHandler::new())),
+            Some("jira") => Some(Box::new(jira::JiraMacroHandler::with_servers(
+                self.jira_server_map.clone(),
+            ))),
             Some("expand") => Some(Box::new(expand::ExpandMacroHandler::new())),
             _ => None,
         };
