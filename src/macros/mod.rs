@@ -3,13 +3,22 @@ mod info;
 mod jira;
 mod status;
 
-use crate::util::get_tag_name;
-use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
+use crate::util::{JiraServerMap, get_tag_name};
+use html2md::{Handle, StructuredPrinter, TagHandler, TagHandlerFactory, common::get_tag_attr};
 
 #[derive(Default)]
 pub struct StructuredMacroHandler {
     macro_specific_handler: Option<Box<dyn TagHandler>>,
-    jira_server_map: jira::JiraServerMap,
+    jira_server_map: JiraServerMap,
+}
+
+impl StructuredMacroHandler {
+    pub fn with_jira_server_map(jira_server_map: JiraServerMap) -> Self {
+        Self {
+            jira_server_map,
+            macro_specific_handler: Default::default(),
+        }
+    }
 }
 
 impl TagHandler for StructuredMacroHandler {
@@ -47,10 +56,20 @@ impl TagHandler for StructuredMacroHandler {
     }
 }
 
-#[derive(Default)]
-pub struct ParameterHandler;
+pub struct StructuredMacroHandlerFactory {
+    jira_server_map: JiraServerMap,
+}
 
-impl TagHandler for ParameterHandler {
-    fn handle(&mut self, _tag: &Handle, _printer: &mut StructuredPrinter) {}
-    fn after_handle(&mut self, _printer: &mut StructuredPrinter) {}
+impl StructuredMacroHandlerFactory {
+    pub fn with_jira_server_map(jira_server_map: JiraServerMap) -> Self {
+        Self { jira_server_map }
+    }
+}
+
+impl TagHandlerFactory for StructuredMacroHandlerFactory {
+    fn instantiate(&self) -> Box<dyn TagHandler> {
+        Box::new(StructuredMacroHandler::with_jira_server_map(
+            self.jira_server_map.clone(),
+        ))
+    }
 }

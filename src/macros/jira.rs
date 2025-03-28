@@ -1,59 +1,5 @@
-use crate::util::{get_tag_name, get_text_content};
+use crate::util::{JiraServerMap, get_tag_name, get_text_content};
 use html2md::{Handle, StructuredPrinter, TagHandler, common::get_tag_attr};
-use std::collections::HashMap;
-use std::str::FromStr;
-
-#[derive(Debug, Clone)]
-pub struct JiraServer {
-    base_url: String,
-}
-
-impl JiraServer {
-    pub fn issue_url<S: AsRef<str>>(&self, key: S) -> String {
-        format!("{}/browse/{}", self.base_url, key.as_ref())
-    }
-
-    pub fn jql_url<S: AsRef<str>>(&self, jql: S) -> String {
-        let jql_encoded = urlencoding::encode(jql.as_ref());
-        format!("{}/issues/?jql={jql_encoded}", self.base_url)
-    }
-}
-
-impl FromStr for JiraServer {
-    type Err = ();
-
-    // Required method
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            base_url: s.to_string(),
-        })
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct JiraServerMap(HashMap<String, JiraServer>);
-
-impl JiraServerMap {
-    pub fn by_id<S: AsRef<str>>(&self, server_id: S) -> Option<&JiraServer> {
-        self.0.get(server_id.as_ref())
-    }
-}
-
-impl From<&[(&str, &str)]> for JiraServerMap {
-    fn from(servers: &[(&str, &str)]) -> Self {
-        Self(
-            servers
-                .iter()
-                .map(|(server_id, base_url)| {
-                    (
-                        server_id.to_string(),
-                        JiraServer::from_str(base_url).unwrap(),
-                    )
-                })
-                .collect(),
-        )
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct JiraMacroHandler {
@@ -119,36 +65,23 @@ impl TagHandler for JiraMacroHandler {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use html2md::{TagHandlerFactory, parse_html_custom};
+    use crate::{JiraServer, ParseOptions, parse_confluence};
+    use std::str::FromStr;
 
-    struct Factory(JiraServerMap);
-    impl TagHandlerFactory for Factory {
-        fn instantiate(&self) -> Box<dyn TagHandler> {
-            Box::new(JiraMacroHandler::with_servers(self.0.clone()))
-        }
-    }
-
-    fn get_handlers() -> HashMap<String, Box<(dyn TagHandlerFactory + 'static)>> {
-        let mut handlers: HashMap<String, Box<(dyn TagHandlerFactory + 'static)>> = HashMap::new();
-        let servers = JiraServerMap::from(
-            [(
-                "144880e9-a1111-333f-9412-ed999a9999fa",
-                "http://jira.atlassian.com",
-            )]
-            .as_slice(),
-        );
-        handlers.insert(
-            String::from("ac:structured-macro"),
-            Box::new(Factory(servers)),
-        );
-        handlers
+    macro_rules! markdown_assert_eq {
+        ($html:expr, $markdown:expr) => {
+            let options = ParseOptions::default().with_jira_server(
+                "144880e9-a1111-333f-9412-ed999a9999fa".to_string(),
+                JiraServer::from_str("http://jira.atlassian.com").unwrap(),
+            );
+            let md = parse_confluence($html, &options);
+            assert_eq!(md, $markdown);
+        };
     }
 
     #[test]
     fn test_jql_query() {
-        let handlers = get_handlers();
-        let md = parse_html_custom(
+        markdown_assert_eq!(
             r#"
   <ac:structured-macro ac:name="jira">
   <ac:parameter ac:name="columns">key,summary,type,created,assignee,status</ac:parameter>
@@ -156,18 +89,13 @@ mod test {
   <ac:parameter ac:name="serverId">144880e9-a1111-333f-9412-ed999a9999fa</ac:parameter>
     <ac:parameter ac:name="jqlQuery">project = CONF AND component = documentation AND resolution = unresolved</ac:parameter>
   </ac:structured-macro>"#,
-            &handlers,
-        );
-        assert_eq!(
-            md,
             "[``project = CONF AND component = documentation AND resolution = unresolved``](http://jira.atlassian.com/issues/?jql=project%20%3D%20CONF%20AND%20component%20%3D%20documentation%20AND%20resolution%20%3D%20unresolved)"
-        )
+        );
     }
 
     #[test]
     fn test_issue_key() {
-        let handlers = get_handlers();
-        let md = parse_html_custom(
+        markdown_assert_eq!(
             r#"
   <ac:structured-macro ac:name="jira">
   <ac:parameter ac:name="columns">key,summary,type,created,assignee,status</ac:parameter>
@@ -175,11 +103,7 @@ mod test {
   <ac:parameter ac:name="serverId">144880e9-a1111-333f-9412-ed999a9999fa</ac:parameter>
   <ac:parameter ac:name="key">CONF-1234</ac:parameter>
   </ac:structured-macro>"#,
-            &handlers,
-        );
-        assert_eq!(
-            md,
             "[CONF-1234](http://jira.atlassian.com/browse/CONF-1234)"
-        )
+        );
     }
 }

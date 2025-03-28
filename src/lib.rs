@@ -1,2 +1,44 @@
+mod dummy;
 mod macros;
 mod util;
+
+use html2md::{TagHandlerFactory, parse_html_custom};
+use std::collections::HashMap;
+use util::{ConfluencePageId, ConfluenceServer, JiraServer, JiraServerMap};
+
+#[derive(Debug, Default, Clone)]
+pub struct ParseOptions {
+    jira_server_map: JiraServerMap,
+}
+
+impl ParseOptions {
+    pub fn with_jira_server(mut self, server_id: String, jira_server: JiraServer) -> ParseOptions {
+        self.jira_server_map.insert(server_id, jira_server);
+        self
+    }
+
+    pub fn with_confluence_server(mut self, server: ConfluenceServer) -> ParseOptions {
+        self.server = Some(server);
+        self
+    }
+
+    pub fn with_page_id(mut self, page_id: ConfluencePageId) -> ParseOptions {
+        self.page_id = Some(page_id);
+        self
+    }
+}
+
+pub fn parse_confluence<S: AsRef<str>>(source: S, options: &ParseOptions) -> String {
+    let mut handlers: HashMap<_, Box<(dyn TagHandlerFactory + 'static)>> = HashMap::new();
+    handlers.insert(
+        String::from("ac:structured-macro"),
+        Box::new(macros::StructuredMacroHandlerFactory::with_jira_server_map(
+            options.jira_server_map.clone(),
+        )),
+    );
+    handlers.insert(
+        String::from("ac:parameter"),
+        Box::new(dummy::RecursiveDummyHandlerFactory {}),
+    );
+    parse_html_custom(source.as_ref(), &handlers)
+}

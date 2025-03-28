@@ -117,50 +117,12 @@ impl TagHandler for InfoMacroHandler {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use html2md::{TagHandlerFactory, parse_html_custom};
-    use std::collections::HashMap;
-
-    struct InfoMacroHandlerFactory;
-    impl TagHandlerFactory for InfoMacroHandlerFactory {
-        fn instantiate(&self) -> Box<dyn TagHandler> {
-            Box::new(InfoMacroHandler::new())
-        }
-    }
-
-    struct DummyRecursiveHandler;
-    impl TagHandler for DummyRecursiveHandler {
-        fn handle(&mut self, _tag: &Handle, _printer: &mut StructuredPrinter) {}
-        fn after_handle(&mut self, _printer: &mut StructuredPrinter) {}
-        fn skip_descendants(&self) -> bool {
-            return true;
-        }
-    }
-
-    struct DummyRecursiveHandlerFactory;
-    impl TagHandlerFactory for DummyRecursiveHandlerFactory {
-        fn instantiate(&self) -> Box<dyn TagHandler> {
-            Box::new(DummyRecursiveHandler {})
-        }
-    }
-
-    fn get_handlers() -> HashMap<String, Box<(dyn TagHandlerFactory + 'static)>> {
-        let mut handlers: HashMap<_, Box<(dyn TagHandlerFactory + 'static)>> = HashMap::new();
-        handlers.insert(
-            String::from("ac:structured-macro"),
-            Box::new(InfoMacroHandlerFactory {}),
-        );
-        handlers.insert(
-            String::from("ac:parameter"),
-            Box::new(DummyRecursiveHandlerFactory {}),
-        );
-        handlers
-    }
+    use crate::{ParseOptions, parse_confluence};
 
     macro_rules! markdown_assert_eq {
         ($html:expr, $markdown:expr) => {
-            let handlers = get_handlers();
-            let md = parse_html_custom($html, &handlers);
+            let options = ParseOptions::default();
+            let md = parse_confluence($html, &options);
             assert_eq!(md, $markdown);
         };
     }
