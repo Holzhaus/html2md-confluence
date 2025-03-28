@@ -53,3 +53,18 @@ impl TagHandlerFactory for EmoticonHandlerFactory {
         Box::new(EmoticonHandler {})
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::markdown_assert_eq;
+
+    #[test]
+    fn test_tick() {
+        markdown_assert_eq!(r#"<ac:emoticon ac:name="tick"/>"#, ":white_check_mark:");
+    }
+
+    #[test]
+    fn test_laugh() {
+        markdown_assert_eq!(r#"<ac:emoticon ac:name="laugh"/>"#, ":smiley:");
+    }
+}
