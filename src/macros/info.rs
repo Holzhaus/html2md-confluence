@@ -117,15 +117,7 @@ impl TagHandler for InfoMacroHandler {
 
 #[cfg(test)]
 mod test {
-    use crate::{ParseOptions, parse_confluence};
-
-    macro_rules! markdown_assert_eq {
-        ($html:expr, $markdown:expr) => {
-            let options = ParseOptions::default();
-            let md = parse_confluence($html, &options);
-            assert_eq!(md, $markdown);
-        };
-    }
+    use crate::markdown_assert_eq;
 
     #[test]
     fn test_info_with_title() {

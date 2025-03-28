@@ -141,3 +141,15 @@ pub fn get_text_content(tag: &Handle) -> String {
         .chain(children.iter().map(get_text_content))
         .collect()
 }
+
+#[cfg(test)]
+#[macro_export]
+macro_rules! markdown_assert_eq {
+    ($html:expr, $markdown:expr) => {
+        use crate::{ParseOptions, parse_confluence};
+
+        let options = ParseOptions::default();
+        let md = parse_confluence($html, &options);
+        assert_eq!(md, $markdown);
+    };
+}
