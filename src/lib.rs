@@ -1,5 +1,6 @@
 mod dummy;
 mod emoticon;
+mod image;
 mod macros;
 mod util;
 
@@ -10,6 +11,8 @@ use util::{ConfluencePageId, ConfluenceServer, JiraServer, JiraServerMap};
 #[derive(Debug, Default, Clone)]
 pub struct ParseOptions {
     jira_server_map: JiraServerMap,
+    server: Option<ConfluenceServer>,
+    page_id: Option<ConfluencePageId>,
 }
 
 impl ParseOptions {
@@ -44,6 +47,12 @@ pub fn parse_confluence<S: AsRef<str>>(source: S, options: &ParseOptions) -> Str
     handlers.insert(
         String::from("ac:emoticon"),
         Box::new(emoticon::EmoticonHandlerFactory {}),
+    );
+    handlers.insert(
+        String::from("ac:image"),
+        Box::new(image::ImageHandlerFactory::with_confluence_page(
+            options.server.clone().zip(options.page_id.clone()),
+        )),
     );
     parse_html_custom(source.as_ref(), &handlers)
 }
