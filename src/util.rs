@@ -42,15 +42,31 @@ impl ConfluenceServer {
         )
     }
 
+    pub fn user_url_with_name<S: AsRef<str>>(&self, username: S) -> String {
+        format!(
+            "{base_url}/users/viewuserprofile.action?username={username}",
+            base_url = self.base_url,
+            username = urlencoding::encode(username.as_ref()),
+        )
+    }
+
+    pub fn user_url_with_key<S: AsRef<str>>(&self, userkey: S) -> String {
+        format!(
+            "{base_url}/users/viewuserprofile.action?userkey={userkey}",
+            base_url = self.base_url,
+            userkey = urlencoding::encode(userkey.as_ref()),
+        )
+    }
+
     pub fn page_url_with_space_and_title<S: AsRef<str>, T: AsRef<str>>(
         &self,
         space: S,
         page_title: T,
     ) -> String {
         format!(
-            "{base_url}/{space}/{page_title}",
+            "{base_url}/display/{space}/{page_title}",
             base_url = self.base_url,
-            space = space.as_ref(),
+            space = urlencoding::encode(space.as_ref()),
             page_title = urlencoding::encode(page_title.as_ref()),
         )
     }

@@ -21,26 +21,39 @@ impl LinkHandlerUrlBuilder {
         }
     }
 
-    fn url_from_page_title<S: AsRef<str>>(&self, page_title: S) -> Option<String> {
-        self.server
-            .as_ref()
-            .zip(self.default_space.as_deref())
-            .map(|(server, default_space)| {
-                server.page_url_with_space_and_title(default_space, page_title.as_ref())
-            })
+    fn url_from_page_space_and_title<S: AsRef<str>, T: AsRef<str>>(
+        &self,
+        space_key: S,
+        page_title: T,
+    ) -> String {
+        let server = self.server.as_ref().expect("missing server");
+        server.page_url_with_space_and_title(space_key.as_ref(), page_title.as_ref())
     }
 
-    fn url_from_attachment_filename<S: AsRef<str>>(&self, filename: S) -> Option<String> {
-        self.server
-            .as_ref()
-            .zip(self.page_id.as_ref())
-            .map(|(server, page_id)| server.attachment_url(page_id, filename.as_ref()))
+    fn url_from_page_title<S: AsRef<str>>(&self, page_title: S) -> String {
+        let default_space = self.default_space.as_deref().expect("missing default space");
+        self.url_from_page_space_and_title(default_space, page_title.as_ref())
+    }
+
+    fn url_from_attachment_filename<S: AsRef<str>>(&self, filename: S) -> String {
+        let server = self.server.as_ref().expect("missing server");
+        let page_id = self.page_id.as_ref().expect("missing page id");
+        server.attachment_url(page_id, filename.as_ref())
+    }
+
+    fn url_from_user_name<S: AsRef<str>>(&self, username: S) -> String {
+        let server = self.server.as_ref().expect("missing server");
+        server.user_url_with_name(username.as_ref())
+    }
+
+    fn url_from_user_key<S: AsRef<str>>(&self, userkey: S) -> String {
+        let server = self.server.as_ref().expect("missing server");
+        server.user_url_with_key(userkey.as_ref())
     }
 }
 
 pub struct LinkHandler {
     start_pos: usize,
-    anchor: Option<String>,
     url: Option<String>,
     url_builder: LinkHandlerUrlBuilder,
 }
@@ -49,22 +62,9 @@ impl LinkHandler {
     pub fn with_url_builder(url_builder: LinkHandlerUrlBuilder) -> Self {
         Self {
             start_pos: 0,
-            anchor: None,
             url: None,
             url_builder,
         }
-    }
-}
-
-impl LinkHandler {
-    fn get_url_from_ri_page(&self, tag: &Handle) -> Option<String> {
-        get_tag_attr(tag, "ri:content-title")
-            .and_then(|page_name| self.url_builder.url_from_page_title(page_name))
-    }
-
-    fn get_url_from_ri_attachment(&self, tag: &Handle) -> Option<String> {
-        get_tag_attr(tag, "ri:filename")
-            .and_then(|filename| self.url_builder.url_from_attachment_filename(filename))
     }
 }
 
@@ -72,31 +72,59 @@ impl TagHandler for LinkHandler {
     fn handle(&mut self, tag: &Handle, printer: &mut StructuredPrinter) {
         self.start_pos = printer.data.len();
 
-        self.anchor = get_tag_attr(tag, "ac:anchor");
+        let anchor = get_tag_attr(tag, "ac:anchor");
 
-        let children = tag.children.borrow();
-        self.url = children
-            .iter()
-            .filter_map(|child| {
-                match get_tag_name(child).as_deref() {
-                    Some("ri:page") => Some(self.get_url_from_ri_page(child).unwrap()),
-                    Some("ri:attachment") => Some(self.get_url_from_ri_attachment(child).unwrap()),
-                    _ => None,
+        let mut page_title = None;
+        let mut space_key = None;
+        let mut attachment_filename = None;
+        let mut user_name = None;
+        let mut user_key = None;
+
+        for child in tag.children.borrow().iter() {
+            match get_tag_name(child).as_deref() {
+                Some("ri:page") => {
+                    page_title = get_tag_attr(child, "ri:content-title");
+                    space_key = get_tag_attr(child, "ri:space-key");
                 }
-                .and_then(|s| if s.is_empty() { None } else { Some(s) })
-            })
-            .next();
+                Some("ri:space") => {
+                    space_key = get_tag_attr(child, "ri:space-key");
+                }
+                Some("ri:attachment") => {
+                    attachment_filename = get_tag_attr(child, "ri:filename");
+                }
+                Some("ri:user") => {
+                    user_name = get_tag_attr(child, "ri:username");
+                    user_key = get_tag_attr(child, "ri:userkey");
+                }
+                _ => (),
+            }
+        }
+
+        let url = if let Some((space, title)) = space_key.as_deref().zip(page_title.as_deref()) {
+            self.url_builder.url_from_page_space_and_title(space, title)
+        } else if let Some(title) = page_title {
+            self.url_builder.url_from_page_title(title)
+        } else if let Some(filename) = attachment_filename {
+            self.url_builder.url_from_attachment_filename(filename)
+        } else if let Some(name) = user_name {
+            self.url_builder.url_from_user_name(name)
+        } else if let Some(key) = user_key {
+            self.url_builder.url_from_user_key(key)
+        } else {
+            String::new()
+        };
+
+        self.url = if let Some(anchor_name) = anchor {
+            format!("{url}#{anchor_name}").into()
+        } else {
+            url.into()
+        };
     }
 
     fn after_handle(&mut self, printer: &mut StructuredPrinter) {
-        let url = self.url.as_deref().unwrap_or("");
+        let url = self.url.as_deref().unwrap();
         let index = printer.data.len();
-        let markdown = if let Some(anchor) = self.anchor.as_deref() {
-            format!("]({url}#{anchor})")
-        } else {
-            format!("]({url})")
-        };
-        printer.insert_str(index, markdown.as_str());
+        printer.insert_str(index, &format!("]({url})"));
         printer.insert_str(self.start_pos, "[");
     }
 }
@@ -156,7 +184,7 @@ mod test {
 <ac:plain-text-link-body>Link to another Confluence Page</ac:plain-text-link-body>
 </ac:link>
 "#,
-            "[Link to another Confluence Page](https://example.com/confluence/CONFL/Page%20Title)"
+            "[Link to another Confluence Page](https://example.com/confluence/display/CONFL/Page%20Title)"
         );
     }
 
@@ -194,7 +222,20 @@ mod test {
 <ac:plain-text-link-body>Anchor Link</ac:plain-text-link-body>
 </ac:link>
 "#,
-            "[Anchor Link](https://example.com/confluence/CONFL/pagetitle#anchor)"
+            "[Anchor Link](https://example.com/confluence/display/CONFL/pagetitle#anchor)"
+        );
+    }
+
+    #[test]
+    fn test_link_user_name() {
+        markdown_assert_eq!(
+            r#"
+<ac:link>
+<ri:user ri:username="someuser"/>
+<ac:plain-text-link-body>User Link</ac:plain-text-link-body>
+</ac:link>
+"#,
+            "[User Link](https://example.com/confluence/users/viewuserprofile.action?username=someuser)"
         );
     }
 
@@ -207,7 +248,7 @@ mod test {
 <ac:link-body><b>Link to another Confluence Page<b></ac:link-body>
 </ac:link>
 "#,
-            "[**Link to another Confluence Page**](https://example.com/confluence/CONFL/Page%20Title)"
+            "[**Link to another Confluence Page**](https://example.com/confluence/display/CONFL/Page%20Title)"
         );
     }
 }
