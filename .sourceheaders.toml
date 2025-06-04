@@ -1,0 +1,5 @@
+[general]
+license = "GPL-3.0-or-later"
+copyright_holder = "Jan Holthuis <jan.holthuis@rub.de>"
+prefer_inline = true
+width = 99

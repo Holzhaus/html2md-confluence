@@ -1,7 +1,15 @@
 [package]
 name = "html2md-confluence"
+description = "Confluence XHTML Storage format to Markdown converter, based on the html2md Rust library."
+authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
+readme = "README.md"
+repository = "https://github.com/Holzhaus/html2md-confluence"
 version = "0.1.0"
 edition = "2024"
+license = "GPL-3.0-or-later"
+keywords = ["confluence", "xhtml", "storage", "markdown", "converter"]
+categories = ["command-line-utilities", "encoding", "parser-implementations"]
+exclude = [".*"]
 
 [dependencies]
 html2md = "0.2.15"
