@@ -1,20 +1,15 @@
 mod dummy;
 mod emoticon;
 mod image;
+mod link;
 mod macros;
 mod util;
 
 use html2md::{TagHandlerFactory, parse_html_custom};
+use quick_xml::{errors::Result, events::Event, reader::Reader, writer::Writer};
 use std::collections::HashMap;
-use util::{ConfluencePageId, ConfluenceServer, JiraServer, JiraServerMap};
-use quick_xml::{
-    errors::Result,
-events::Event,
-reader::Reader,
-writer::Writer,
-};
 use std::io::{BufRead, Write};
-
+use util::{ConfluencePageId, ConfluenceServer, JiraServer, JiraServerMap};
 
 fn remove_cdata<R: BufRead, W: Write>(
     reader: &mut Reader<R>,
@@ -37,6 +32,7 @@ fn remove_cdata<R: BufRead, W: Write>(
 pub struct ParseOptions {
     jira_server_map: JiraServerMap,
     server: Option<ConfluenceServer>,
+    default_space: Option<String>,
     page_id: Option<ConfluencePageId>,
 }
 
@@ -77,6 +73,16 @@ pub fn parse_confluence<S: AsRef<str>>(source: S, options: &ParseOptions) -> Str
         String::from("ac:image"),
         Box::new(image::ImageHandlerFactory::with_confluence_page(
             options.server.clone().zip(options.page_id.clone()),
+        )),
+    );
+    handlers.insert(
+        String::from("ac:link"),
+        Box::new(link::LinkHandlerFactory::with_url_builder(
+            link::LinkHandlerUrlBuilder::new(
+                options.server.clone(),
+                options.default_space.clone(),
+                options.page_id.clone(),
+            ),
         )),
     );
 

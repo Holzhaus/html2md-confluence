@@ -38,7 +38,20 @@ impl ConfluenceServer {
         format!(
             "{base_url}/download/attachments/{page_id}/{filename}",
             base_url = self.base_url,
-            filename = filename.as_ref()
+            filename = urlencoding::encode(filename.as_ref()),
+        )
+    }
+
+    pub fn page_url_with_space_and_title<S: AsRef<str>, T: AsRef<str>>(
+        &self,
+        space: S,
+        page_title: T,
+    ) -> String {
+        format!(
+            "{base_url}/{space}/{page_title}",
+            base_url = self.base_url,
+            space = space.as_ref(),
+            page_title = urlencoding::encode(page_title.as_ref()),
         )
     }
 }
