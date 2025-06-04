@@ -31,9 +31,9 @@ fn remove_cdata<R: BufRead, W: Write>(
 #[derive(Debug, Default, Clone)]
 pub struct ParseOptions {
     jira_server_map: JiraServerMap,
-    server: Option<ConfluenceServer>,
-    default_space: Option<String>,
-    page_id: Option<ConfluencePageId>,
+    confluence_server: Option<ConfluenceServer>,
+    default_space_key: Option<String>,
+    default_page_id: Option<ConfluencePageId>,
 }
 
 impl ParseOptions {
@@ -42,13 +42,18 @@ impl ParseOptions {
         self
     }
 
-    pub fn with_confluence_server(mut self, server: ConfluenceServer) -> ParseOptions {
-        self.server = Some(server);
+    pub fn with_confluence_server(mut self, confluence_server: ConfluenceServer) -> ParseOptions {
+        self.confluence_server = Some(confluence_server);
         self
     }
 
-    pub fn with_page_id(mut self, page_id: ConfluencePageId) -> ParseOptions {
-        self.page_id = Some(page_id);
+    pub fn with_default_page_id(mut self, default_page_id: ConfluencePageId) -> ParseOptions {
+        self.default_page_id = Some(default_page_id);
+        self
+    }
+
+    pub fn with_default_space_key(mut self, default_space_key: String) -> ParseOptions {
+        self.default_space_key = Some(default_space_key);
         self
     }
 }
@@ -72,16 +77,19 @@ pub fn parse_confluence<S: AsRef<str>>(source: S, options: &ParseOptions) -> Str
     handlers.insert(
         String::from("ac:image"),
         Box::new(image::ImageHandlerFactory::with_confluence_page(
-            options.server.clone().zip(options.page_id.clone()),
+            options
+                .confluence_server
+                .clone()
+                .zip(options.default_page_id.clone()),
         )),
     );
     handlers.insert(
         String::from("ac:link"),
         Box::new(link::LinkHandlerFactory::with_url_builder(
             link::LinkHandlerUrlBuilder::new(
-                options.server.clone(),
-                options.default_space.clone(),
-                options.page_id.clone(),
+                options.confluence_server.clone(),
+                options.default_space_key.clone(),
+                options.default_page_id.clone(),
             ),
         )),
     );

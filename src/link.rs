@@ -31,7 +31,10 @@ impl LinkHandlerUrlBuilder {
     }
 
     fn url_from_page_title<S: AsRef<str>>(&self, page_title: S) -> String {
-        let default_space = self.default_space.as_deref().expect("missing default space");
+        let default_space = self
+            .default_space
+            .as_deref()
+            .expect("missing default space");
         self.url_from_page_space_and_title(default_space, page_title.as_ref())
     }
 
