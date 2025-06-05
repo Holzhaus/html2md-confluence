@@ -24,7 +24,8 @@ use html2md::{TagHandlerFactory, parse_html_custom};
 use quick_xml::{errors::Result, events::Event, reader::Reader, writer::Writer};
 use std::collections::HashMap;
 use std::io::{BufRead, Write};
-use util::{ConfluencePageId, ConfluenceServer, JiraServer, JiraServerMap};
+use util::JiraServerMap;
+pub use util::{ConfluencePageId, ConfluenceServer, JiraServer};
 
 fn remove_cdata<R: BufRead, W: Write>(
     reader: &mut Reader<R>,

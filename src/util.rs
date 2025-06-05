@@ -43,6 +43,14 @@ impl FromStr for ConfluencePageId {
     }
 }
 
+impl TryFrom<&str> for ConfluencePageId {
+    type Error = std::num::ParseIntError;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse::<usize>().map(Self::from)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConfluenceServer {
     base_url: String,
@@ -122,6 +130,14 @@ impl FromStr for JiraServer {
         Ok(Self {
             base_url: s.to_string(),
         })
+    }
+}
+
+impl From<&str> for JiraServer {
+    fn from(s: &str) -> Self {
+        Self {
+            base_url: s.to_string(),
+        }
     }
 }
 
