@@ -29,11 +29,11 @@ repos:
       hooks:
           - id: yamlfmt
     - repo: https://github.com/gitleaks/gitleaks
-      rev: a248f9279b38aeff5bbd4c85cc6f15b64d27e794  # frozen: v8.27.0
+      rev: 39fdb480a06768cc41a84ef86959c07ff33091c4  # frozen: v8.28.0
       hooks:
           - id: gitleaks
     - repo: https://github.com/woodruffw/zizmor-pre-commit
-      rev: d2c1833a059c66713cd52c032617766134679a0f  # frozen: v1.9.0
+      rev: 69fa534d69454f44ddd4451b5e2da7a1c48e525b  # frozen: v1.11.0
       hooks:
           - id: zizmor
     - repo: https://github.com/doublify/pre-commit-rust
